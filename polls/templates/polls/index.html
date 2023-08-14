@@ -1,9 +1,24 @@
+{% extends "polls/base.html" %}
+
+{% load static %}
+
+<link rel="stylesheet" type="text/css" href="{% static 'polls/style.css' %}">
+
+{% block content %}
+
+<a href="{% url 'polls:add_question' %}">Add New Question</a>
+
 {% if latest_question_list %}
     <ul>
-    {% for question in latest_question_list %}
-        <<li><a href="{% url 'detail' question.id %}">{{ question.question_text }}</a></li>
-    {% endfor %}
+        {% for question in latest_question_list %}
+        <li>
+            <a href="{% url 'polls:detail' question.id %}">{{ question.question_text }}</a> 
+            <a href="{% url 'polls:edit_question' question.id %}">Edit</a> 
+            <a href="{% url 'polls:delete_question' question.id %}">Delete</a>
+        </li>
+        {% endfor %}
     </ul>
 {% else %}
     <p>No polls are available.</p>
 {% endif %}
+{% endblock %}

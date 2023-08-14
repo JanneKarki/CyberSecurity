@@ -1,0 +1,17 @@
+{% extends "polls/base.html" %}
+
+...
+{% if user.is_authenticated %}
+  Hello, {{ user.username }}! <a href="{% url 'polls:logout' %}">Logout</a>
+{% else %}
+  <a href="{% url 'polls:login' %}">Login</a>
+{% endif %}
+...
+
+{% block title %}{% if subtitle %}{{ subtitle }} | {% endif %}{{ title }} | {{ site_title|default:_('Django site admin') }}{% endblock %}
+
+{% block branding %}
+<h1 id="site-name"><a href="{% url 'admin:index' %}">Polls Administration</a></h1>
+{% endblock %}
+
+{% block nav-global %}{% endblock %}
