@@ -6,7 +6,13 @@
 <h1>{{ question.question_text }}</h1>
 <ul>
 {% for choice in question.choice_set.all %}
-    <li>{{ choice.choice_text }}</li>
+    <li>
+        {{ choice.choice_text }}
+        <a href="{% url 'polls:edit_choice' choice.id %}">Edit</a>
+        <a href="{% url 'polls:delete_choice' choice.id %}">Delete</a>
+    </li>
 {% endfor %}
 </ul>
+<a href="{% url 'polls:add_choice' question.id %}">Add a new choice</a>
+ 
 {% endblock %}

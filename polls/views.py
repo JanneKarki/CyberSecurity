@@ -1,5 +1,5 @@
-from django.http import HttpResponseRedirect
-from django.shortcuts import get_object_or_404, render
+from django.http import HttpResponseForbidden, HttpResponseRedirect
+from django.shortcuts import get_object_or_404, render, redirect
 from django.urls import reverse
 from django.views import generic
 from django.utils import timezone
@@ -7,6 +7,7 @@ from .models import Choice, Question
 from django.contrib.auth.decorators import login_required
 from django.utils.decorators import method_decorator
 from .forms import QuestionForm
+from .forms import ChoiceForm
 
 @method_decorator(login_required, name='dispatch')
 class IndexView(generic.ListView):
@@ -89,5 +90,49 @@ def edit_question(request, question_id):
 @login_required
 def delete_question(request, question_id):
     question = get_object_or_404(Question, pk=question_id, user=request.user)
-    question.delete()
-    return HttpResponseRedirect(reverse('polls:index'))
+    if request.method == "POST":
+        question.delete()
+        return HttpResponseRedirect(reverse('polls:index'))
+    return render(request, 'polls/confirm_delete.html', {'question': question})
+
+
+@login_required
+def add_choice(request, question_id):
+    question = get_object_or_404(Question, pk=question_id)
+    if request.method == "POST":
+        form = ChoiceForm(request.POST)
+        if form.is_valid():
+            choice = form.save(commit=False)
+            choice.question = question
+            choice.save()
+            return redirect('polls:detail', pk=question.id)
+        
+    else:
+        form = ChoiceForm()
+    return render(request, 'polls/add_choice.html', {'form': form, 'question': question})
+
+@login_required
+def edit_choice(request, choice_id):
+    choice = get_object_or_404(Choice, pk=choice_id, question__user=request.user)
+    if request.method == "POST":
+        form = ChoiceForm(request.POST, instance=choice)
+        if form.is_valid():
+            form.save()
+            return redirect('polls:detail', pk=choice.question.id)
+    else:
+        form = ChoiceForm(instance=choice)
+    return render(request, 'polls/edit_choice.html', {'form': form, 'choice': choice})
+
+@login_required
+def delete_choice(request, choice_id):
+    choice = get_object_or_404(Choice, pk=choice_id)
+    
+    # Ensure the current user is the creator of the question linked to this choice
+    if choice.question.user != request.user:
+        return HttpResponseForbidden("You don't have permission to delete this choice.")
+    
+    if request.method == "POST":
+        choice.delete()
+        return HttpResponseRedirect(reverse('polls:detail', args=(choice.question.id,)))
+    
+    return render(request, 'polls/confirm_delete_choice.html', {'choice': choice})

@@ -1,0 +1,10 @@
+{% extends "polls/base.html" %}
+
+{% block content %}
+<h2>Add Choice for: {{ question.question_text }}</h2>  <!-- Change the heading for edit_choice.html -->
+<form method="post">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit">Submit</button>
+</form>
+{% endblock %}
