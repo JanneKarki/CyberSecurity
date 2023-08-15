@@ -1,23 +1,29 @@
 {% extends "polls/base.html" %}
 
-
-
 {% block content %}
-<h1>{{ question.question_text }}</h1>
-<ul>
-{% for choice in question.choice_set.all %}
-    <li>
-        {{ choice.choice_text }}- {{ choice.votes }} votes
-        {% if user == choice.user %}
-                <a href="{% url 'polls:edit_choice' choice.id %}">Edit</a>
-                <a href="{% url 'polls:delete_choice' choice.id %}">Delete</a>
-        {% endif %}
-    </li>
-{% endfor %}
-</ul>
-<a href="{% url 'polls:add_choice' question.id %}">Add a new choice</a>
-<div>
-<a href="{% url 'polls:index' %}">Back to polls</a>
-</div>
- 
+    <h1>{{ question.question_text }}</h1>
+    <form action="{% url 'polls:vote' question.id %}" method="post">
+        {% csrf_token %}
+        {% for choice in question.choice_set.all %}
+            <li>
+                <input type="radio" name="choice" id="choice{{ forloop.counter }}" value="{{ choice.id }}">
+                <label for="choice{{ forloop.counter }}">{{ choice.choice_text }}</label><br>
+            </li>
+        {% endfor %}
+        <br>
+        <input type="submit" value="Vote">
+        
+    </form>
+    <div>
+    <br>
+    {% if user == question.user %}
+        <a href="{% url 'polls:edit_question' question.id %}">Edit</a> 
+        <a href="{% url 'polls:delete_question' question.id %}">Delete</a>
+    {% endif %}
+    </div>
+    <div>
+        <br>
+        <a href="{% url 'polls:index' %}">Back to polls</a>
+    </div>
+    
 {% endblock %}

@@ -8,7 +8,7 @@ class Question(models.Model):
     question_text = models.CharField(max_length=200)
     pub_date = models.DateTimeField('date published', auto_now_add=True)
     user = models.ForeignKey(User, on_delete=models.CASCADE, null=True)
-
+    users_voted = models.ManyToManyField(User, related_name='votes', blank=True)
 
     def __str__(self):
         return self.question_text
@@ -27,10 +27,16 @@ class Choice(models.Model):
     choice_text = models.CharField(max_length=200)
     votes = models.IntegerField(default=0)
     user = models.ForeignKey(User, on_delete=models.CASCADE)
+    
 
     def __str__(self):
         return self.choice_text
 
+
+class Vote(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    question = models.ForeignKey(Question, on_delete=models.CASCADE)
+    choice = models.ForeignKey(Choice, on_delete=models.CASCADE)
 
 
 #QuestionUpdateView, -DeleteView

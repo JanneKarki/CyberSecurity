@@ -3,13 +3,14 @@ from django.shortcuts import get_object_or_404, render, redirect
 from django.urls import reverse
 from django.views import generic
 from django.utils import timezone
-from .models import Choice, Question
+from .models import Choice, Question, Vote
 from django.contrib.auth.decorators import login_required
 from django.utils.decorators import method_decorator
 from .forms import QuestionForm
-from .forms import ChoiceForm
+from .forms import ChoiceForm, ChoiceFormset
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth import login
+from django.forms import formset_factory
 
 @method_decorator(login_required, name='dispatch')
 class IndexView(generic.ListView):
@@ -31,6 +32,18 @@ class DetailView(generic.DetailView):
     model = Question
     template_name = 'polls/detail.html'
 
+    def get(self, request, *args, **kwargs):
+        # Call the base implementation to get the question
+        response = super().get(request, *args, **kwargs)
+
+        question = self.get_object()
+
+        user_vote = Vote.objects.filter(user=request.user, question=question).first()
+        if user_vote:
+            # Redirect to results page if the user has already voted
+            return HttpResponseRedirect(reverse('polls:results', args=(question.id,)))
+
+        return response
     #def get_queryset(self):
      #   return Question.objects.filter(user=self.request.user)
 
@@ -40,53 +53,121 @@ class ResultsView(generic.DetailView):
     model = Question
     template_name = 'polls/results.html'
 
+
+@login_required
+def poll_detail(request, question_id):
+    question = get_object_or_404(Question, pk=question_id)
+    
+    # Check if the user has already voted for this question
+    user_vote = Vote.objects.filter(user=request.user, question=question).first()
+    if user_vote:
+        # Redirect to results page if the user has already voted
+        return HttpResponseRedirect(reverse('polls:results', args=(question.id,)))
+    else:
+        # Display the form to vote
+        return render(request, 'polls/detail.html', {'question': question})
+
 @login_required
 def vote(request, question_id):
     question = get_object_or_404(Question, pk=question_id)
     try:
         selected_choice = question.choice_set.get(pk=request.POST['choice'])
     except (KeyError, Choice.DoesNotExist):
-        # Redisplay the question voting form.
         return render(request, 'polls/detail.html', {
             'question': question,
             'error_message': "You didn't select a choice.",
         })
     else:
-        selected_choice.votes += 1
-        selected_choice.save()
-        # Always return an HttpResponseRedirect after successfully dealing
-        # with POST data. This prevents data from being posted twice if a
-        # user hits the Back button.
-        return HttpResponseRedirect(reverse('polls:results', args=(question.id,)))
+        # Check if the user has already voted for this question
+        user_vote = Vote.objects.filter(user=request.user, question=question).first()
+        if user_vote:
+            # Redirect to results page if the user has already voted
+            return HttpResponseRedirect(reverse('polls:results', args=(question.id,)))
+        else:
+            # Record the vote
+            selected_choice.votes += 1
+            selected_choice.save()
+            
+            # Create a new Vote instance to record the user's vote
+            Vote.objects.create(user=request.user, question=question, choice=selected_choice)
+            
+            return HttpResponseRedirect(reverse('polls:results', args=(question.id,)))
+
 
 @login_required
 def add_question(request):
+
+    ChoiceFormSet = formset_factory(ChoiceForm, extra=5)
+
     if request.method == "POST":
         form = QuestionForm(request.POST)
-        if form.is_valid():
+        formset = ChoiceFormSet(request.POST, prefix='choices')
+        if form.is_valid() and formset.is_valid():
             question = form.save(commit=False)
             question.pub_date = timezone.now()
             question.user = request.user
             question.save()
+
+            # Save only filled out choices.
+            for choice_form in formset:
+                choice_text = choice_form.cleaned_data.get('choice_text')
+                if choice_text:  # Only if choice_text is filled
+                    choice = choice_form.save(commit=False)
+                    choice.question = question
+                    choice.user = request.user  # Assign the user to the choice here.
+                    choice.save()
+
+
             return HttpResponseRedirect(reverse('polls:index'))
     else:
         form = QuestionForm()
+        formset = ChoiceFormSet(prefix='choices')
 
-    return render(request, 'polls/add_question.html', {'form': form})
+    return render(request, 'polls/add_question.html', {'form': form, 'formset': formset})
+
 
 
 @login_required
 def edit_question(request, question_id):
     question = get_object_or_404(Question, pk=question_id, user=request.user)
+    
+    existing_choices_count = question.choice_set.count()
+    extra_forms = max(0, 5 - existing_choices_count)  # Adjust 5 to your desired max
+
+    ChoiceFormSet = formset_factory(ChoiceForm, extra=extra_forms, can_delete=False)  # can_delete set to False
+
     if request.method == "POST":
+        
         form = QuestionForm(request.POST, instance=question)
-        if form.is_valid():
+        formset = ChoiceFormSet(request.POST, prefix='choices')
+           
+        if form.is_valid() and formset.is_valid():
+            # Remove all existing choices related to the question
+            question.choice_set.all().delete()
+
+            # Save the updated question
             form.save()
+            
+            # Handle new choices
+            for choice_form in formset:
+                if choice_form.cleaned_data and choice_form.cleaned_data.get('choice_text').strip():  # check for non-empty choice_text
+                    new_choice = choice_form.save(commit=False)
+                    new_choice.question = question
+                    new_choice.user = request.user
+                    new_choice.save()
+            
             return HttpResponseRedirect(reverse('polls:index'))
+
     else:
         form = QuestionForm(instance=question)
 
-    return render(request, 'polls/edit_question.html', {'form': form})
+        # For the GET request, bind choices manually
+        choices_data = [{'choice_text': choice.choice_text} for choice in question.choice_set.all()]
+        formset = ChoiceFormSet(prefix='choices', initial=choices_data)
+
+    return render(request, 'polls/edit_question.html', {'form': form, 'formset': formset, 'question_id': question.id})
+
+
 
 
 @login_required
@@ -98,47 +179,6 @@ def delete_question(request, question_id):
     return render(request, 'polls/confirm_delete.html', {'question': question})
 
 
-@login_required
-def add_choice(request, question_id):
-    question = get_object_or_404(Question, pk=question_id)
-    if request.method == "POST":
-        form = ChoiceForm(request.POST)
-        if form.is_valid():
-            choice = form.save(commit=False)
-            choice.question = question
-            choice.user = request.user  # Set the user
-            choice.save()
-            return redirect('polls:detail', pk=question.id)
-        
-    else:
-        form = ChoiceForm()
-    return render(request, 'polls/add_choice.html', {'form': form, 'question': question})
-
-@login_required
-def edit_choice(request, choice_id):
-    choice = get_object_or_404(Choice, pk=choice_id, question__user=request.user)
-    if request.method == "POST":
-        form = ChoiceForm(request.POST, instance=choice)
-        if form.is_valid():
-            form.save()
-            return redirect('polls:detail', pk=choice.question.id)
-    else:
-        form = ChoiceForm(instance=choice)
-    return render(request, 'polls/edit_choice.html', {'form': form, 'choice': choice})
-
-@login_required
-def delete_choice(request, choice_id):
-    choice = get_object_or_404(Choice, pk=choice_id)
-    
-    # Ensure the current user is the creator of the question linked to this choice
-    if choice.question.user != request.user:
-        return HttpResponseForbidden("You don't have permission to delete this choice.")
-    
-    if request.method == "POST":
-        choice.delete()
-        return HttpResponseRedirect(reverse('polls:detail', args=(choice.question.id,)))
-    
-    return render(request, 'polls/confirm_delete_choice.html', {'choice': choice})
 
 
 def register(request):

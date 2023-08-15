@@ -1,10 +1,21 @@
 {% extends "polls/base.html" %}
 
 {% block content %}
-<h2>Add Question</h2>  <!-- Change this to "Edit Question" for edit_question.html -->
+<h2>Add Poll</h2>
 <form method="post">
     {% csrf_token %}
     {{ form.as_p }}
+    {{ formset.management_form }}
+    <div id="choice-forms">
+        {% for form in formset %}
+            <div class="choice-form">
+                {{ form.as_p }}
+            </div>
+        {% endfor %}
+    </div>
     <button type="submit">Submit</button>
+    <br>
+    <br>
+    <a href="{% url 'polls:index' %}">Cancel</a> 
 </form>
 {% endblock %}

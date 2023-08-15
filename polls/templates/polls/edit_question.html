@@ -1,10 +1,22 @@
 {% extends "polls/base.html" %}
 
 {% block content %}
-<h2>Add Question</h2>  <!-- Change this to "Edit Question" for edit_question.html -->
+<h2>Edit Poll</h2>
 <form method="post">
     {% csrf_token %}
     {{ form.as_p }}
-    <button type="submit">Submit</button>
+    {{ formset.management_form }}
+    <div id="choice-forms">
+        {% for form in formset %}
+            <div class="choice-form">
+                {{ form.as_p }}
+            </div>
+        {% endfor %}
+    </div>
+    <button type="submit">Submit</button> (will restart the poll)
+    <br>
+    <br>
+    <a href="{% url 'polls:detail' pk=question_id %}">Cancel</a>
+
 </form>
 {% endblock %}
