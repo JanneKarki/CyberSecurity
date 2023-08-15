@@ -8,6 +8,8 @@ from django.contrib.auth.decorators import login_required
 from django.utils.decorators import method_decorator
 from .forms import QuestionForm
 from .forms import ChoiceForm
+from django.contrib.auth.forms import UserCreationForm
+from django.contrib.auth import login
 
 @method_decorator(login_required, name='dispatch')
 class IndexView(generic.ListView):
@@ -29,8 +31,8 @@ class DetailView(generic.DetailView):
     model = Question
     template_name = 'polls/detail.html'
 
-    def get_queryset(self):
-        return Question.objects.filter(user=self.request.user)
+    #def get_queryset(self):
+     #   return Question.objects.filter(user=self.request.user)
 
 
 @method_decorator(login_required, name='dispatch')
@@ -104,6 +106,7 @@ def add_choice(request, question_id):
         if form.is_valid():
             choice = form.save(commit=False)
             choice.question = question
+            choice.user = request.user  # Set the user
             choice.save()
             return redirect('polls:detail', pk=question.id)
         
@@ -136,3 +139,16 @@ def delete_choice(request, choice_id):
         return HttpResponseRedirect(reverse('polls:detail', args=(choice.question.id,)))
     
     return render(request, 'polls/confirm_delete_choice.html', {'choice': choice})
+
+
+def register(request):
+    if request.method == "POST":
+        form = UserCreationForm(request.POST)
+        if form.is_valid():
+            user = form.save()
+            # Log the user in.
+            login(request, user)
+            return redirect('polls:index')
+    else:
+        form = UserCreationForm()
+    return render(request, 'polls/register.html', {'form': form})

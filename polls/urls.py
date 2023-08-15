@@ -5,6 +5,7 @@ from . import views
 
 app_name = 'polls'
 urlpatterns = [
+    path('register/', views.register, name='register'),
     path('', views.IndexView.as_view(), name='index'),
     path('<int:pk>/', views.DetailView.as_view(), name='detail'),
     path('<int:pk>/results/', views.ResultsView.as_view(), name='results'),
@@ -18,4 +19,3 @@ urlpatterns = [
     path('choice/<int:choice_id>/edit/', views.edit_choice, name='edit_choice'),
     path('choice/<int:choice_id>/delete/', views.delete_choice, name='delete_choice'),
 ]
-
