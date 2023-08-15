@@ -11,6 +11,7 @@ from .forms import ChoiceForm, ChoiceFormset
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth import login
 from django.forms import formset_factory
+from django.db import connection
 
 @method_decorator(login_required, name='dispatch')
 class IndexView(generic.ListView):
@@ -168,8 +169,6 @@ def edit_question(request, question_id):
     return render(request, 'polls/edit_question.html', {'form': form, 'formset': formset, 'question_id': question.id})
 
 
-
-
 @login_required
 def delete_question(request, question_id):
     question = get_object_or_404(Question, pk=question_id, user=request.user)
@@ -192,3 +191,18 @@ def register(request):
     else:
         form = UserCreationForm()
     return render(request, 'polls/register.html', {'form': form})
+
+def search(request):
+    keyword = request.GET.get('keyword')
+    
+    #Vulnerable SQL query
+    with connection.cursor() as cursor:
+        cursor.execute("SELECT * FROM polls_question WHERE question_text LIKE '%" + keyword + "%'")
+        rows = cursor.fetchall()
+        columns = [col[0] for col in cursor.description]
+        results = [
+            dict(zip(columns, row))
+            for row in rows
+        ]
+
+    return render(request, 'polls/search_results.html', {'results': results})
