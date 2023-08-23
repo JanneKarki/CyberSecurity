@@ -169,19 +169,18 @@ def edit_question(request, question_id):
     return render(request, 'polls/edit_question.html', {'form': form, 'formset': formset, 'question_id': question.id})
 
 
-"""@login_required
+#flaw broken authentication
+#fix_a
+#@login_required
 def delete_question(request, question_id):
-    question = get_object_or_404(Question, pk=question_id, user=request.user)
-    if request.method == "POST":
-        question.delete()
-        return HttpResponseRedirect(reverse('polls:index'))
-    return render(request, 'polls/confirm_delete.html', {'question': question})
-"""
 
-def delete_question(request, question_id):
-    #flaw broken authentication
-    question = get_object_or_404(Question, pk=question_id)
-    if request.method == "GET":
+   
+    question = get_object_or_404(Question, pk=question_id) #flaw_b
+    #fix_b
+    #question = get_object_or_404(Question, pk=question_id, user=request.user)
+    if request.method == "GET": #flaw_c
+    #fix_c
+    #if request.method == "POST":
         question.delete()
         return HttpResponseRedirect(reverse('polls:index'))
     return render(request, 'polls/confirm_delete.html', {'question': question})
