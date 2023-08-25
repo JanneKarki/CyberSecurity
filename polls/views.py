@@ -1,17 +1,21 @@
-from django.http import HttpResponseForbidden, HttpResponseRedirect
+from django.http import HttpResponseForbidden, HttpResponseRedirect, HttpResponse
 from django.shortcuts import get_object_or_404, render, redirect
 from django.urls import reverse
 from django.views import generic
 from django.utils import timezone
-from .models import Choice, Question, Vote
+from .models import Choice, Question, Vote, LoginAttempt
 from django.contrib.auth.decorators import login_required
 from django.utils.decorators import method_decorator
 from .forms import QuestionForm
 from .forms import ChoiceForm, ChoiceFormset
 from django.contrib.auth.forms import UserCreationForm
-from django.contrib.auth import login
+from django.contrib.auth import login, authenticate
 from django.forms import formset_factory
 from django.db import connection
+from django.contrib.auth.views import LoginView
+from datetime import timedelta
+
+
 
 @method_decorator(login_required, name='dispatch')
 class IndexView(generic.ListView):
@@ -174,12 +178,13 @@ def edit_question(request, question_id):
 #@login_required
 def delete_question(request, question_id):
 
-   
     question = get_object_or_404(Question, pk=question_id) #flaw_b
     #fix_b
     #question = get_object_or_404(Question, pk=question_id, user=request.user)
-    if request.method == "GET": #flaw_c
-    #fix_c
+    
+    # flaw Cross-Site Request Forgery (CSRF)
+    if request.method == "GET": #flaw
+    #fix
     #if request.method == "POST":
         question.delete()
         return HttpResponseRedirect(reverse('polls:index'))
@@ -214,3 +219,15 @@ def search(request):
     return render(request, 'polls/search_results.html', {'results': results})
 
 
+def custom_login(request):
+    if request.method == "POST":
+        username = request.POST.get('username')
+        password = request.POST.get('password')
+        user = authenticate(request, username=username, password=password)
+        if user is not None:
+            login(request, user)
+            return redirect('polls:index')
+        else:
+            return HttpResponse("Invalid credentials. Please try again.")
+
+    return render(request, 'polls/login.html')
