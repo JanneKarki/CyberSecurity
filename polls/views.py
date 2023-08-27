@@ -23,10 +23,7 @@ class IndexView(generic.ListView):
     context_object_name = 'latest_question_list'
 
     def get_queryset(self):
-        """
-        Return the last five published questions (not including those set to be
-        published in the future).
-        """
+        #Return the last five published questions
         return Question.objects.filter(
             pub_date__lte=timezone.now()
         ).order_by('-pub_date')[:5]
@@ -50,9 +47,7 @@ class DetailView(generic.DetailView):
             return HttpResponseRedirect(reverse('polls:results', args=(question.id,)))
 
         return response
-    #def get_queryset(self):
-     #   return Question.objects.filter(user=self.request.user)
-
+    
 
 @method_decorator(login_required, name='dispatch')
 class ResultsView(generic.DetailView):
@@ -70,7 +65,6 @@ def poll_detail(request, question_id):
         # Redirect to results page if the user has already voted
         return HttpResponseRedirect(reverse('polls:results', args=(question.id,)))
     else:
-        # Display the form to vote
         return render(request, 'polls/detail.html', {'question': question})
 
 @login_required
@@ -184,9 +178,7 @@ def delete_question(request, question_id):
     #question = get_object_or_404(Question, pk=question_id, user=request.user)
     
     # flaw Cross-Site Request Forgery (CSRF)
-    if request.method == "GET": #flaw
-    #fix
-    #if request.method == "POST":
+    if request.method == "GET": #flaw fix -> if request.method == "POST":
         question.delete()
         return HttpResponseRedirect(reverse('polls:index'))
     return render(request, 'polls/confirm_delete.html', {'question': question})
@@ -234,6 +226,7 @@ def custom_login(request):
     return render(request, 'polls/login.html')
 
 
+# monitoring loging attempts
 class LoginView(LoginView):
 
     def post(self, request, *args, **kwargs):
@@ -245,11 +238,9 @@ class LoginView(LoginView):
         if recent_attempts >= 5:
             return HttpResponse("Too many failed login attempts. Please wait 15 minutes and try again.")
         
-        # Call the original post method
         response = super().post(request, *args, **kwargs)
-        
-        # After attempting to login, log the attempt
-        was_successful = response.status_code == 302  # Assuming a redirect (302) indicates success
+       
+        was_successful = response.status_code == 302  
         LoginAttempt.objects.create(username=username, success=was_successful)
 
         if was_successful:
