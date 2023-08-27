@@ -4,12 +4,14 @@
   <h2>Login</h2>
   <form method="post">
     {% csrf_token %}
-    <label for="username">Username:</label>
-    <input type="text" name="username" required>
-    <br>
-    <label for="password">Password:</label>
-    <input type="password" name="password" required>
-    <br>
+    {{ form.as_p }}
+    {% if form.non_field_errors %}
+        <div class="error-messages">
+            {% for error in form.non_field_errors %}
+                <p>{{ error }}</p>
+            {% endfor %}
+        </div>
+    {% endif %}
     <button type="submit">Login</button>
   </form>
 {% endblock %}

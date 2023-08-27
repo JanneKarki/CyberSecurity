@@ -32,6 +32,7 @@ class IndexView(generic.ListView):
         ).order_by('-pub_date')[:5]
 
 
+
 @method_decorator(login_required, name='dispatch')
 class DetailView(generic.DetailView):
     model = Question
@@ -231,3 +232,27 @@ def custom_login(request):
             return HttpResponse("Invalid credentials. Please try again.")
 
     return render(request, 'polls/login.html')
+
+
+class LoginView(LoginView):
+
+    def post(self, request, *args, **kwargs):
+     
+        username = request.POST.get('username')
+        time_threshold = timezone.now() - timedelta(minutes=0.5)
+        recent_attempts = LoginAttempt.objects.filter(username=username, timestamp__gte=time_threshold, success=False).count()
+        
+        if recent_attempts >= 5:
+            return HttpResponse("Too many failed login attempts. Please wait 15 minutes and try again.")
+        
+        # Call the original post method
+        response = super().post(request, *args, **kwargs)
+        
+        # After attempting to login, log the attempt
+        was_successful = response.status_code == 302  # Assuming a redirect (302) indicates success
+        LoginAttempt.objects.create(username=username, success=was_successful)
+
+        if was_successful:
+            LoginAttempt.objects.filter(username=username, success=False).delete()
+        
+        return response

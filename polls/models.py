@@ -59,3 +59,13 @@ class QuestionDeleteView(generic.DeleteView):
         """Only allow the creator to delete the question."""
         qs = super().get_queryset()
         return qs.filter(created_by=self.request.user)
+
+
+
+class LoginAttempt(models.Model):
+    username = models.CharField(max_length=255)
+    timestamp = models.DateTimeField(auto_now_add=True)
+    success = models.BooleanField(default=False)
+
+    def __str__(self):
+        return f"Attempt by {self.username} at {self.timestamp}"
