@@ -225,7 +225,7 @@ def search(request):
 
 
 
-# Fix 5_3
+# Fix 5_3 
 class LoginView(LoginView):
     """
     Logs every login attempt in the `LoginAttempt` model.
