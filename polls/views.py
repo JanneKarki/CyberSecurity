@@ -3,7 +3,7 @@ from django.shortcuts import get_object_or_404, render, redirect
 from django.urls import reverse
 from django.views import generic
 from django.utils import timezone
-from .models import Choice, Question, Vote, LoginAttempt
+from .models import Choice, Question, Vote #, LoginAttempt
 from django.contrib.auth.decorators import login_required
 from django.utils.decorators import method_decorator
 from .forms import QuestionForm
