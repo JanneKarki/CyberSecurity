@@ -3,6 +3,7 @@ from django.shortcuts import get_object_or_404, render, redirect
 from django.urls import reverse
 from django.views import generic
 from django.utils import timezone
+                                            # Fix 5_2
 from .models import Choice, Question, Vote #, LoginAttempt
 from django.contrib.auth.decorators import login_required
 from django.utils.decorators import method_decorator
@@ -177,9 +178,9 @@ def delete_question(request, question_id):
     # question = get_object_or_404(Question, pk=question_id, user=request.user)
     
     # 4. Cross-Site Request Forgery (CSRF)
+    if request.method == "GET":
     # Fix 4:
-    # if request.method == "POST":
-    if request.method == "GET": 
+    # if request.method == "POST": 
         question.delete()
         return HttpResponseRedirect(reverse('polls:index'))
     return render(request, 'polls/confirm_delete.html', {'question': question})
@@ -206,7 +207,7 @@ def search(request):
     """
     keyword = request.GET.get('keyword')
     
-    #Vulnerable SQL query
+    # 2. SQL Injection
     with connection.cursor() as cursor:
         cursor.execute("SELECT * FROM polls_question WHERE question_text LIKE '%" + keyword + "%'")
         # Fix by using parameterized queries:
@@ -224,7 +225,7 @@ def search(request):
 
 
 
-
+# Fix 5_3
 class LoginView(LoginView):
     """
     Logs every login attempt in the `LoginAttempt` model.

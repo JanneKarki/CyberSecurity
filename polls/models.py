@@ -60,7 +60,7 @@ class QuestionDeleteView(generic.DeleteView):
         qs = super().get_queryset()
         return qs.filter(created_by=self.request.user)
 
-
+# Fix 5_1
 """
 class LoginAttempt(models.Model):
     # LoginAttempt model for keeping logging attempt records in the database. 
