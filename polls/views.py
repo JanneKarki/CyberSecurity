@@ -167,17 +167,19 @@ def edit_question(request, question_id):
     return render(request, 'polls/edit_question.html', {'form': form, 'formset': formset, 'question_id': question.id})
 
 
-#flaw broken authentication
-#fix_a
-#@login_required
+# 3. Identification and Authentication Failures :
+# Fix 3a:
+# @login_required
 def delete_question(request, question_id):
 
     question = get_object_or_404(Question, pk=question_id) #flaw_b
-    #fix_b
-    #question = get_object_or_404(Question, pk=question_id, user=request.user)
+    # Fix 3b:
+    # question = get_object_or_404(Question, pk=question_id, user=request.user)
     
-    # flaw Cross-Site Request Forgery (CSRF)
-    if request.method == "GET": #flaw fix -> if request.method == "POST":
+    # 4. Cross-Site Request Forgery (CSRF)
+    # Fix 4:
+    # if request.method == "POST":
+    if request.method == "GET": 
         question.delete()
         return HttpResponseRedirect(reverse('polls:index'))
     return render(request, 'polls/confirm_delete.html', {'question': question})
