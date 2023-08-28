@@ -161,7 +161,6 @@ def edit_question(request, question_id):
     else:
         form = QuestionForm(instance=question)
 
-        # For the GET request, bind choices manually
         choices_data = [{'choice_text': choice.choice_text} for choice in question.choice_set.all()]
         formset = ChoiceFormSet(prefix='choices', initial=choices_data)
 
@@ -197,11 +196,20 @@ def register(request):
     return render(request, 'polls/register.html', {'form': form})
 
 def search(request):
+    """
+    Search for questions based on a keyword provided by GET request.
+
+    Currently, this method uses a vulnerable SQL query prone to SQL injection.
+    There's a safe parameterized query approach commented out.
+    """
     keyword = request.GET.get('keyword')
     
     #Vulnerable SQL query
     with connection.cursor() as cursor:
         cursor.execute("SELECT * FROM polls_question WHERE question_text LIKE '%" + keyword + "%'")
+        # Fix by using parameterized queries:
+        # cursor.execute("SELECT * FROM polls_question WHERE question_text LIKE %s", ['%' + keyword + '%'])
+
         rows = cursor.fetchall()
         columns = [col[0] for col in cursor.description]
         results = [
@@ -212,34 +220,31 @@ def search(request):
     return render(request, 'polls/search_results.html', {'results': results})
 
 
-def custom_login(request):
-    if request.method == "POST":
-        username = request.POST.get('username')
-        password = request.POST.get('password')
-        user = authenticate(request, username=username, password=password)
-        if user is not None:
-            login(request, user)
-            return redirect('polls:index')
-        else:
-            return HttpResponse("Invalid credentials. Please try again.")
-
-    return render(request, 'polls/login.html')
 
 
-# monitoring loging attempts
+
 class LoginView(LoginView):
+    """
+    Logs every login attempt in the `LoginAttempt` model.
+    If a user exceeds 5 failed login attempts, they are prevented
+    from making another attempt for the next 5 minute.
+        
+    """
 
+    # Monitoring logging attempts:
+
+    """
     def post(self, request, *args, **kwargs):
-     
+
+        response = super().post(request, *args, **kwargs)
         username = request.POST.get('username')
-        time_threshold = timezone.now() - timedelta(minutes=0.5)
+        # computes the datetime 5 minutes prior to the current time.
+        time_threshold = timezone.now() - timedelta(minutes=5)
         recent_attempts = LoginAttempt.objects.filter(username=username, timestamp__gte=time_threshold, success=False).count()
         
         if recent_attempts >= 5:
-            return HttpResponse("Too many failed login attempts. Please wait 15 minutes and try again.")
+            return HttpResponse("Too many failed login attempts. Please wait 5 minutes and try again.")
         
-        response = super().post(request, *args, **kwargs)
-       
         was_successful = response.status_code == 302  
         LoginAttempt.objects.create(username=username, success=was_successful)
 
@@ -247,3 +252,5 @@ class LoginView(LoginView):
             LoginAttempt.objects.filter(username=username, success=False).delete()
         
         return response
+
+    """
