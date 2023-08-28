@@ -168,12 +168,12 @@ def edit_question(request, question_id):
 
 
 # 3. Identification and Authentication Failures :
-# Fix 3a:
+# Fix 3_1:
 # @login_required
 def delete_question(request, question_id):
 
     question = get_object_or_404(Question, pk=question_id) #flaw_b
-    # Fix 3b:
+    # Fix 3_2:
     # question = get_object_or_404(Question, pk=question_id, user=request.user)
     
     # 4. Cross-Site Request Forgery (CSRF)
